@@ -9,8 +9,9 @@ class Game {
     constructor() {
         this.player = new Player(Constants.WIDTH / 2, Constants.HEIGHT / 2,
             Constants.PLAYER_W, Constants.PLAYER_H);
-        this.ctx = (document.getElementById("gameCanvas") as HTMLCanvasElement)
-            .getContext("2d")!;
+        this.ctx = ((document.getElementById("gameCanvas") as HTMLCanvasElement)
+            .getContext("2d") as CanvasRenderingContext2D);
+        Key.init(); // set up keyboard input handler
 
         setInterval(this.loop, 1000 / Constants.FPS);
     }

@@ -69,14 +69,8 @@ define("player", ["require", "exports", "entity"], function (require, exports, e
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     class Player extends entity_1.Entity {
-        constructor() {
-            super(...arguments);
-            this.x = 0;
-            this.y = 0;
-            this.w = 0;
-            this.h = 0;
-            this.dx = 0;
-            this.dy = 0;
+        constructor(x, y, w, h) {
+            super(x, y, w, h);
             this.r = 0; // rotation
             this.rv = 0; // rotational velocity
         }
@@ -142,6 +136,7 @@ define("game", ["require", "exports", "constants", "key", "player"], function (r
             this.player = new player_1.Player(constants_1.Constants.WIDTH / 2, constants_1.Constants.HEIGHT / 2, constants_1.Constants.PLAYER_W, constants_1.Constants.PLAYER_H);
             this.ctx = document.getElementById("gameCanvas")
                 .getContext("2d");
+            key_1.Key.init(); // set up keyboard input handler
             setInterval(this.loop, 1000 / constants_1.Constants.FPS);
         }
     }
