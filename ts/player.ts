@@ -17,22 +17,22 @@ export class Player extends Entity {
 
   private hitTop() {
     this.dy *= -Constants.Y_BOUNCE;
-    this.dx = this.rv * Constants.WALL_FRICTION;
+    this.dx += this.rv * Constants.WALL_FRICTION;
   }
 
   private hitBottom() {
     this.dy *= -Constants.Y_BOUNCE;
-    this.dx = -this.rv * Constants.WALL_FRICTION;
+    this.dx += -this.rv * Constants.WALL_FRICTION;
   }
 
   private hitLeft() {
     this.dx *= -Constants.X_BOUNCE;
-    this.dy = this.rv * Constants.WALL_FRICTION;
+    this.dy += this.rv * Constants.WALL_FRICTION;
   }
 
   private hitRight() {
     this.dx *= -Constants.X_BOUNCE;
-    this.dy = -this.rv * Constants.WALL_FRICTION;
+    this.dy += -this.rv * Constants.WALL_FRICTION;
   }
 
   private edgeCollisions() {
@@ -109,10 +109,14 @@ export class Player extends Entity {
     this.handleYCollisions();
 
     this.dy += Constants.GRAVITY;
+
+    this.dx = Math.sign(this.dx) * Math.min(Math.abs(this.dx), Constants.MAX_DX);
+    this.dy = Math.sign(this.dy) * Math.min(Math.abs(this.dy), Constants.MAX_DY);
   }
 
   public draw(ctx: CanvasRenderingContext2D) {
-    ctx.fillStyle = "black";
+    let scaleFactor = Math.max(1, Math.abs(this.rv) * Constants.SPIN_SCALE_FACTOR);
+
     ctx.translate(this.x + this.w / 2 - Camera.x, this.y + this.h / 2 - Camera.y);
     ctx.rotate(this.r);
     ctx.drawImage(
@@ -121,10 +125,10 @@ export class Player extends Entity {
       0,
       Constants.TILESIZE * 2,
       Constants.TILESIZE * 2,
-      -this.w / 2,
-      -this.h / 2,
-      this.w,
-      this.h
+      -this.w / 2 * scaleFactor,
+      -this.h / 2 * scaleFactor,
+      this.w * scaleFactor,
+      this.h * scaleFactor
     );
     ctx.setTransform(1, 0, 0, 1, 0, 0);
   }

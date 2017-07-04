@@ -32,6 +32,8 @@ export class Game {
     this.level = new Level(this);
     this.parallax = new Parallax();
 
+    Camera.setTarget(this.player);
+
     setInterval(this.loop, 1000 / Constants.FPS);
   }
 

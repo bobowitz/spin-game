@@ -16,6 +16,13 @@ export class Camera {
       player.y + player.w / 2 - Constants.HEIGHT / 2 + player.dy * Constants.CAMERA_LEAD;
   }
 
+  static setTarget(player: Player) {
+    this.updateTarget(player);
+
+    this.cx = this.targetX;
+    this.cy = this.targetY;
+  }
+
   static update() {
     this.cx += (this.targetX - this.cx) * 0.1;
     this.cy += (this.targetY - this.cy) * 0.1;

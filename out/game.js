@@ -55,13 +55,16 @@ define("constants", ["require", "exports"], function (require, exports) {
     Constants.WIDTH = 640;
     Constants.HEIGHT = 480;
     Constants.FPS = 60;
-    Constants.MAX_SPIN = 0.6;
+    Constants.MAX_SPIN = 0.2;
+    Constants.MAX_DX = 10;
+    Constants.MAX_DY = 10;
     Constants.GRAVITY = 0.05;
-    Constants.WALL_FRICTION = 10;
+    Constants.WALL_FRICTION = 30;
     Constants.WALL_ANGLE_SCALE = Math.PI * 0.45 / Constants.MAX_SPIN;
-    Constants.X_BOUNCE = 1.05;
+    Constants.X_BOUNCE = 1;
     Constants.Y_BOUNCE = 1;
     Constants.ACCEL = 1;
+    Constants.SPIN_SCALE_FACTOR = 7; // visual effect
     Constants.CAMERA_LEAD = 10;
     Constants.TILESIZE = 16;
     Constants.PLAYER_W = 32;
@@ -75,37 +78,34 @@ define("level", ["require", "exports", "constants", "block", "camera"], function
         addBlock(x, y) {
             this.blocks.push(new block_1.Block(x * constants_1.Constants.TILESIZE, y * constants_1.Constants.TILESIZE, constants_1.Constants.TILESIZE, constants_1.Constants.TILESIZE));
         }
-        movePlayer(game, x, y) {
-            game.player.x = x * constants_1.Constants.TILESIZE;
-            game.player.y = y * constants_1.Constants.TILESIZE;
+        pointInRect(pX, pY, rX, rY, rW, rH) {
+            if (pX >= rX + rW || pX < rX)
+                return false;
+            if (pY >= rY + rH || pY < rY)
+                return false;
+            return true;
+        }
+        generate(game) {
+            const CORRIDOR_WIDTH = 16;
+            const CORRIDOR_HEIGHT = 1000;
+            constants_1.Constants.LEVEL_W = constants_1.Constants.WIDTH;
+            constants_1.Constants.LEVEL_H = CORRIDOR_HEIGHT * constants_1.Constants.TILESIZE;
+            game.player.x = constants_1.Constants.LEVEL_W / 2 - game.player.w / 2;
+            game.player.y = (CORRIDOR_HEIGHT - 5) * constants_1.Constants.TILESIZE;
+            for (let x = 0; x < constants_1.Constants.WIDTH / constants_1.Constants.TILESIZE; x++) {
+                for (let y = 0; y < CORRIDOR_HEIGHT; y++) {
+                    if (this.pointInRect(x, y, constants_1.Constants.LEVEL_W / constants_1.Constants.TILESIZE / 2 - CORRIDOR_WIDTH / 2, 0, CORRIDOR_WIDTH, CORRIDOR_HEIGHT - 1)) {
+                        continue;
+                    }
+                    else {
+                        this.addBlock(x, y);
+                    }
+                }
+            }
         }
         constructor(game) {
             this.blocks = new Array();
-            let levelImage = new Image();
-            levelImage.src = "res/level.png";
-            levelImage.onload = () => {
-                let canvas = document.createElement("canvas");
-                canvas.width = levelImage.width;
-                canvas.height = levelImage.height;
-                let ctx = canvas.getContext("2d");
-                ctx.drawImage(levelImage, 0, 0, levelImage.width, levelImage.height);
-                let data = ctx.getImageData(0, 0, levelImage.width, levelImage.height).data;
-                constants_1.Constants.LEVEL_W = levelImage.width * constants_1.Constants.TILESIZE;
-                constants_1.Constants.LEVEL_H = levelImage.height * constants_1.Constants.TILESIZE;
-                for (let y = 0; y < levelImage.height; y++) {
-                    for (let x = 0; x < levelImage.width; x++) {
-                        let r = data[(x + y * levelImage.width) * 4];
-                        let g = data[(x + y * levelImage.width) * 4 + 1];
-                        let b = data[(x + y * levelImage.width) * 4 + 2];
-                        if (r === 0 && g === 0 && b === 0) {
-                            this.addBlock(x, y);
-                        }
-                        if (r === 255 && g === 255 && b === 0) {
-                            this.movePlayer(game, x, y);
-                        }
-                    }
-                }
-            };
+            this.generate(game);
         }
         onScreen(block) {
             if (block.x - camera_1.Camera.x > constants_1.Constants.WIDTH)
@@ -184,6 +184,7 @@ define("game", ["require", "exports", "constants", "key", "player", "level", "ca
             Game.spritesheet.src = "res/tileset.png";
             this.level = new level_1.Level(this);
             this.parallax = new parallax_1.Parallax();
+            camera_3.Camera.setTarget(this.player);
             setInterval(this.loop, 1000 / constants_3.Constants.FPS);
         }
     }
@@ -202,19 +203,19 @@ define("player", ["require", "exports", "entity", "key", "constants", "game", "c
         }
         hitTop() {
             this.dy *= -constants_4.Constants.Y_BOUNCE;
-            this.dx = this.rv * constants_4.Constants.WALL_FRICTION;
+            this.dx += this.rv * constants_4.Constants.WALL_FRICTION;
         }
         hitBottom() {
             this.dy *= -constants_4.Constants.Y_BOUNCE;
-            this.dx = -this.rv * constants_4.Constants.WALL_FRICTION;
+            this.dx += -this.rv * constants_4.Constants.WALL_FRICTION;
         }
         hitLeft() {
             this.dx *= -constants_4.Constants.X_BOUNCE;
-            this.dy = this.rv * constants_4.Constants.WALL_FRICTION;
+            this.dy += this.rv * constants_4.Constants.WALL_FRICTION;
         }
         hitRight() {
             this.dx *= -constants_4.Constants.X_BOUNCE;
-            this.dy = -this.rv * constants_4.Constants.WALL_FRICTION;
+            this.dy += -this.rv * constants_4.Constants.WALL_FRICTION;
         }
         edgeCollisions() {
             if (this.x > constants_4.Constants.WIDTH - this.w) {
@@ -289,12 +290,14 @@ define("player", ["require", "exports", "entity", "key", "constants", "game", "c
             this.y += this.dy;
             this.handleYCollisions();
             this.dy += constants_4.Constants.GRAVITY;
+            this.dx = Math.sign(this.dx) * Math.min(Math.abs(this.dx), constants_4.Constants.MAX_DX);
+            this.dy = Math.sign(this.dy) * Math.min(Math.abs(this.dy), constants_4.Constants.MAX_DY);
         }
         draw(ctx) {
-            ctx.fillStyle = "black";
+            let scaleFactor = Math.max(1, Math.abs(this.rv) * constants_4.Constants.SPIN_SCALE_FACTOR);
             ctx.translate(this.x + this.w / 2 - camera_4.Camera.x, this.y + this.h / 2 - camera_4.Camera.y);
             ctx.rotate(this.r);
-            ctx.drawImage(game_2.Game.spritesheet, constants_4.Constants.TILESIZE * 3, 0, constants_4.Constants.TILESIZE * 2, constants_4.Constants.TILESIZE * 2, -this.w / 2, -this.h / 2, this.w, this.h);
+            ctx.drawImage(game_2.Game.spritesheet, constants_4.Constants.TILESIZE * 3, 0, constants_4.Constants.TILESIZE * 2, constants_4.Constants.TILESIZE * 2, -this.w / 2 * scaleFactor, -this.h / 2 * scaleFactor, this.w * scaleFactor, this.h * scaleFactor);
             ctx.setTransform(1, 0, 0, 1, 0, 0);
         }
     }
@@ -309,6 +312,11 @@ define("camera", ["require", "exports", "constants"], function (require, exports
                 player.x + player.w / 2 - constants_5.Constants.WIDTH / 2 + player.dx * constants_5.Constants.CAMERA_LEAD;
             this.targetY =
                 player.y + player.w / 2 - constants_5.Constants.HEIGHT / 2 + player.dy * constants_5.Constants.CAMERA_LEAD;
+        }
+        static setTarget(player) {
+            this.updateTarget(player);
+            this.cx = this.targetX;
+            this.cy = this.targetY;
         }
         static update() {
             this.cx += (this.targetX - this.cx) * 0.1;
