@@ -1,79 +1,121 @@
-import { Constants } from "./constants";
-import { Key } from "./key";
-import { Player } from "./player";
+import { Constants } from './constants';
+import { Key } from './key';
+import { Player } from './player';
 
 class Game {
-    player: Player;
-    ctx: CanvasRenderingContext2D;
+  players: Player[];
+  ctx: CanvasRenderingContext2D;
+  gameLoopId: number;
+  constructor() {
+    this.players = [];
+    this.players.push(
+      new Player(
+        Constants.WIDTH,
+        Constants.HEIGHT / 2,
+        Constants.PLAYER_W,
+        Constants.PLAYER_H,
+        Constants.HEALTH
+      )
+    );
+    this.players.push(
+      new Player(0, Constants.HEIGHT / 2, Constants.PLAYER_W, Constants.PLAYER_H, Constants.HEALTH)
+    );
+    this.ctx = (document.getElementById('gameCanvas') as HTMLCanvasElement).getContext(
+      '2d'
+    ) as CanvasRenderingContext2D;
+    Key.init(); // set up keyboard input handler
 
-    constructor() {
-        this.player = new Player(Constants.WIDTH / 2, Constants.HEIGHT / 2,
-            Constants.PLAYER_W, Constants.PLAYER_H);
-        this.ctx = ((document.getElementById("gameCanvas") as HTMLCanvasElement)
-            .getContext("2d") as CanvasRenderingContext2D);
-        Key.init(); // set up keyboard input handler
+    this.gameLoopId = setInterval(this.loop, 1000 / Constants.FPS);
+  }
 
-        setInterval(this.loop, 1000 / Constants.FPS);
+  private update = () => {
+    if (Key.isDown(Key.LEFT)) {
+      this.players[0].rv -= Constants.ACCEL;
+    } else if (Key.isDown(Key.RIGHT)) {
+      this.players[0].rv += Constants.ACCEL;
+    } else {
+      this.players[0].rv *= 0;
     }
-
-    private update = () => {
-        if (Key.isDown(Key.LEFT)) {
-            this.player.rv -= Constants.ACCEL;
-        }
-        else if (Key.isDown(Key.RIGHT)) {
-            this.player.rv += Constants.ACCEL;
-        }
-        else {
-            this.player.rv *= 0.9;
-        }
-        if (Math.abs(this.player.rv) > Constants.MAX_SPIN) {
-            this.player.rv = Constants.MAX_SPIN * Math.sign(this.player.rv);
-        }
-        this.player.r += this.player.rv;
-
-        this.player.x += this.player.dx;
-        this.player.y += this.player.dy;
-        this.player.dy += Constants.GRAVITY;
-
-        if (this.player.x > Constants.WIDTH - this.player.w) {
-            this.player.x = Constants.WIDTH - this.player.w;
-            this.player.dx *= -Constants.X_BOUNCE;
-            this.player.dy = -this.player.rv * Constants.WALL_FRICTION;
-        }
-        if (this.player.x < 0) {
-            this.player.x = 0;
-            this.player.dx *= -Constants.X_BOUNCE;
-            this.player.dy = this.player.rv * Constants.WALL_FRICTION;
-        }
-        if (this.player.y > Constants.HEIGHT - this.player.h) {
-            this.player.y = Constants.HEIGHT - this.player.h;
-            this.player.dy *= -Constants.Y_BOUNCE;
-            this.player.dx = this.player.rv * Constants.WALL_FRICTION;
-        }
-        if (this.player.y < 0) {
-            this.player.y = 0;
-            this.player.dy *= -Constants.Y_BOUNCE;
-            this.player.dx = -this.player.rv * Constants.WALL_FRICTION;
-        }
+    if (Key.isDown(Key.A)) {
+      this.players[1].rv -= Constants.ACCEL;
+    } else if (Key.isDown(Key.D)) {
+      this.players[1].rv += Constants.ACCEL;
+    } else {
+      this.players[1].rv *= 0;
     }
+    for (const player of this.players) {
+      if (Math.abs(player.rv) > Constants.MAX_SPIN) {
+        player.rv = Constants.MAX_SPIN * Math.sign(player.rv);
+      }
+      player.r += player.rv;
 
-    private draw = () => {
-        this.ctx.fillStyle = "white";
-        this.ctx.fillRect(0, 0, Constants.WIDTH, Constants.HEIGHT);
+      player.x += player.dx;
+      player.y += player.dy;
+      player.dy += Constants.GRAVITY;
 
-        this.ctx.fillStyle = "black";
-        this.ctx.translate(this.player.x + this.player.w / 2,
-            this.player.y + this.player.h / 2);
-        this.ctx.rotate(this.player.r);
-        this.ctx.fillRect(-this.player.w / 2, -this.player.h / 2,
-            this.player.w, this.player.h);
-        this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+      if (player.x > Constants.WIDTH - player.w) {
+        player.x = Constants.WIDTH - player.w;
+        player.dx *= -Constants.X_BOUNCE;
+        player.dy = -player.rv * Constants.WALL_FRICTION;
+      }
+      if (player.x < 0) {
+        player.x = 0;
+        player.dx *= -Constants.X_BOUNCE;
+        player.dy = player.rv * Constants.WALL_FRICTION;
+      }
+      if (player.y > Constants.HEIGHT - player.h) {
+        player.y = Constants.HEIGHT - player.h;
+        player.dy *= -Constants.Y_BOUNCE;
+        player.dx = player.rv * Constants.WALL_FRICTION;
+      }
+      if (player.y < 0) {
+        player.y = 0;
+        player.dy *= -Constants.Y_BOUNCE;
+        player.dx = -player.rv * Constants.WALL_FRICTION;
+      }
     }
-
-    private loop = () => {
-        this.update();
-        this.draw();
+    if (
+      Math.abs(this.players[0].c_x - this.players[1].c_x) < this.players[0].w &&
+      Math.abs(this.players[0].y - this.players[1].y) < this.players[0].h
+    ) {
+      if (this.players[0].y >= this.players[1].y) {
+        this.players[0].health -= 25;
+        this.players[0].dy = 10;
+        this.players[1].dy = -10;
+      } else {
+        this.players[1].health -= 25;
+        this.players[1].dy = 10;
+        this.players[0].dy = -10;
+      }
     }
+  };
+
+  private draw = () => {
+    this.ctx.fillStyle = 'white';
+    this.ctx.fillRect(0, 0, Constants.WIDTH, Constants.HEIGHT);
+
+    for (const player of this.players) {
+      this.ctx.fillStyle = `rgb(${Math.floor(255 - player.health * 2.5)}, ${Math.floor(
+        player.health * 2.5
+      )}, ${0})`;
+      this.ctx.translate(player.x + player.w / 2, player.y + player.h / 2);
+      this.ctx.rotate(player.r);
+      this.ctx.fillRect(-player.w / 2, -player.h / 2, player.w, player.h);
+      this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
+  };
+
+  private loop = () => {
+    this.update();
+    this.draw();
+    if (this.players[0].health <= 0) {
+      this.ctx.fillText('Player 2 wins!', 500, 250);
+      clearInterval(this.gameLoopId);
+    } else if (this.players[1].health <= 0) {
+      this.ctx.fillText('Player 1 wins!', 500, 250);
+      clearInterval(this.gameLoopId);
+    }
+  };
 }
 
 var game = new Game();

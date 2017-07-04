@@ -14,6 +14,8 @@ define("constants", ["require", "exports"], function (require, exports) {
     Constants.ACCEL = 0.04;
     Constants.PLAYER_W = 32;
     Constants.PLAYER_H = 32;
+    Constants.HEALTH = 100;
+    Constants.NUM_PLAYERS = 2;
     exports.Constants = Constants;
 });
 define("entity", ["require", "exports"], function (require, exports) {
@@ -32,6 +34,12 @@ define("entity", ["require", "exports"], function (require, exports) {
             this.w = w;
             this.h = h;
         }
+        get c_x() {
+            return this.x + this.w / 2;
+        }
+        get c_y() {
+            return this.y + this.h / 2;
+        }
     }
     exports.Entity = Entity;
 });
@@ -40,10 +48,10 @@ define("key", ["require", "exports"], function (require, exports) {
     Object.defineProperty(exports, "__esModule", { value: true });
     class Key {
         static init() {
-            window.addEventListener('keyup', (event) => {
+            window.addEventListener('keyup', event => {
                 this.onKeyUp(event);
             }, false);
-            window.addEventListener('keydown', (event) => {
+            window.addEventListener('keydown', event => {
                 this.onKeyDown(event);
             }, false);
         }
@@ -63,16 +71,22 @@ define("key", ["require", "exports"], function (require, exports) {
     Key.UP = 38;
     Key.RIGHT = 39;
     Key.DOWN = 40;
+    Key.W = 87;
+    Key.A = 65;
+    Key.S = 83;
+    Key.D = 68;
     exports.Key = Key;
 });
 define("player", ["require", "exports", "entity"], function (require, exports, entity_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     class Player extends entity_1.Entity {
-        constructor(x, y, w, h) {
+        constructor(x, y, w, h, health) {
             super(x, y, w, h);
             this.r = 0; // rotation
             this.rv = 0; // rotational velocity
+            this.health = 0;
+            this.health = health;
         }
     }
     exports.Player = Player;
@@ -84,60 +98,95 @@ define("game", ["require", "exports", "constants", "key", "player"], function (r
         constructor() {
             this.update = () => {
                 if (key_1.Key.isDown(key_1.Key.LEFT)) {
-                    this.player.rv -= constants_1.Constants.ACCEL;
+                    this.players[0].rv -= constants_1.Constants.ACCEL;
                 }
                 else if (key_1.Key.isDown(key_1.Key.RIGHT)) {
-                    this.player.rv += constants_1.Constants.ACCEL;
+                    this.players[0].rv += constants_1.Constants.ACCEL;
                 }
                 else {
-                    this.player.rv *= 0.9;
+                    this.players[0].rv *= 0;
                 }
-                if (Math.abs(this.player.rv) > constants_1.Constants.MAX_SPIN) {
-                    this.player.rv = constants_1.Constants.MAX_SPIN * Math.sign(this.player.rv);
+                if (key_1.Key.isDown(key_1.Key.A)) {
+                    this.players[1].rv -= constants_1.Constants.ACCEL;
                 }
-                this.player.r += this.player.rv;
-                this.player.x += this.player.dx;
-                this.player.y += this.player.dy;
-                this.player.dy += constants_1.Constants.GRAVITY;
-                if (this.player.x > constants_1.Constants.WIDTH - this.player.w) {
-                    this.player.x = constants_1.Constants.WIDTH - this.player.w;
-                    this.player.dx *= -constants_1.Constants.X_BOUNCE;
-                    this.player.dy = -this.player.rv * constants_1.Constants.WALL_FRICTION;
+                else if (key_1.Key.isDown(key_1.Key.D)) {
+                    this.players[1].rv += constants_1.Constants.ACCEL;
                 }
-                if (this.player.x < 0) {
-                    this.player.x = 0;
-                    this.player.dx *= -constants_1.Constants.X_BOUNCE;
-                    this.player.dy = this.player.rv * constants_1.Constants.WALL_FRICTION;
+                else {
+                    this.players[1].rv *= 0;
                 }
-                if (this.player.y > constants_1.Constants.HEIGHT - this.player.h) {
-                    this.player.y = constants_1.Constants.HEIGHT - this.player.h;
-                    this.player.dy *= -constants_1.Constants.Y_BOUNCE;
-                    this.player.dx = this.player.rv * constants_1.Constants.WALL_FRICTION;
+                for (const player of this.players) {
+                    if (Math.abs(player.rv) > constants_1.Constants.MAX_SPIN) {
+                        player.rv = constants_1.Constants.MAX_SPIN * Math.sign(player.rv);
+                    }
+                    player.r += player.rv;
+                    player.x += player.dx;
+                    player.y += player.dy;
+                    player.dy += constants_1.Constants.GRAVITY;
+                    if (player.x > constants_1.Constants.WIDTH - player.w) {
+                        player.x = constants_1.Constants.WIDTH - player.w;
+                        player.dx *= -constants_1.Constants.X_BOUNCE;
+                        player.dy = -player.rv * constants_1.Constants.WALL_FRICTION;
+                    }
+                    if (player.x < 0) {
+                        player.x = 0;
+                        player.dx *= -constants_1.Constants.X_BOUNCE;
+                        player.dy = player.rv * constants_1.Constants.WALL_FRICTION;
+                    }
+                    if (player.y > constants_1.Constants.HEIGHT - player.h) {
+                        player.y = constants_1.Constants.HEIGHT - player.h;
+                        player.dy *= -constants_1.Constants.Y_BOUNCE;
+                        player.dx = player.rv * constants_1.Constants.WALL_FRICTION;
+                    }
+                    if (player.y < 0) {
+                        player.y = 0;
+                        player.dy *= -constants_1.Constants.Y_BOUNCE;
+                        player.dx = -player.rv * constants_1.Constants.WALL_FRICTION;
+                    }
                 }
-                if (this.player.y < 0) {
-                    this.player.y = 0;
-                    this.player.dy *= -constants_1.Constants.Y_BOUNCE;
-                    this.player.dx = -this.player.rv * constants_1.Constants.WALL_FRICTION;
+                if (Math.abs(this.players[0].c_x - this.players[1].c_x) < this.players[0].w &&
+                    Math.abs(this.players[0].y - this.players[1].y) < this.players[0].h) {
+                    if (this.players[0].y >= this.players[1].y) {
+                        this.players[0].health -= 25;
+                        this.players[0].dy = 10;
+                        this.players[1].dy = -10;
+                    }
+                    else {
+                        this.players[1].health -= 25;
+                        this.players[1].dy = 10;
+                        this.players[0].dy = -10;
+                    }
                 }
             };
             this.draw = () => {
-                this.ctx.fillStyle = "white";
+                this.ctx.fillStyle = 'white';
                 this.ctx.fillRect(0, 0, constants_1.Constants.WIDTH, constants_1.Constants.HEIGHT);
-                this.ctx.fillStyle = "black";
-                this.ctx.translate(this.player.x + this.player.w / 2, this.player.y + this.player.h / 2);
-                this.ctx.rotate(this.player.r);
-                this.ctx.fillRect(-this.player.w / 2, -this.player.h / 2, this.player.w, this.player.h);
-                this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                for (const player of this.players) {
+                    this.ctx.fillStyle = `rgb(${Math.floor(255 - player.health * 2.5)}, ${Math.floor(player.health * 2.5)}, ${0})`;
+                    this.ctx.translate(player.x + player.w / 2, player.y + player.h / 2);
+                    this.ctx.rotate(player.r);
+                    this.ctx.fillRect(-player.w / 2, -player.h / 2, player.w, player.h);
+                    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                }
             };
             this.loop = () => {
                 this.update();
                 this.draw();
+                if (this.players[0].health <= 0) {
+                    this.ctx.fillText('Player 2 wins!', 500, 250);
+                    clearInterval(this.gameLoopId);
+                }
+                else if (this.players[1].health <= 0) {
+                    this.ctx.fillText('Player 1 wins!', 500, 250);
+                    clearInterval(this.gameLoopId);
+                }
             };
-            this.player = new player_1.Player(constants_1.Constants.WIDTH / 2, constants_1.Constants.HEIGHT / 2, constants_1.Constants.PLAYER_W, constants_1.Constants.PLAYER_H);
-            this.ctx = document.getElementById("gameCanvas")
-                .getContext("2d");
+            this.players = [];
+            this.players.push(new player_1.Player(constants_1.Constants.WIDTH, constants_1.Constants.HEIGHT / 2, constants_1.Constants.PLAYER_W, constants_1.Constants.PLAYER_H, constants_1.Constants.HEALTH));
+            this.players.push(new player_1.Player(0, constants_1.Constants.HEIGHT / 2, constants_1.Constants.PLAYER_W, constants_1.Constants.PLAYER_H, constants_1.Constants.HEALTH));
+            this.ctx = document.getElementById('gameCanvas').getContext('2d');
             key_1.Key.init(); // set up keyboard input handler
-            setInterval(this.loop, 1000 / constants_1.Constants.FPS);
+            this.gameLoopId = setInterval(this.loop, 1000 / constants_1.Constants.FPS);
         }
     }
     var game = new Game();
