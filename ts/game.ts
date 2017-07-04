@@ -1,80 +1,59 @@
 import { Constants } from "./constants";
 import { Key } from "./key";
 import { Player } from "./player";
+import { Block } from "./block";
+import { Level } from "./level";
+import { Camera } from "./camera";
+import { Parallax } from "./parallax";
 
-class Game {
-    player: Player;
-    ctx: CanvasRenderingContext2D;
+export class Game {
+  player: Player;
+  public level: Level;
+  parallax: Parallax;
+  public static spritesheet: HTMLImageElement;
+  ctx: CanvasRenderingContext2D;
 
-    constructor() {
-        this.player = new Player(Constants.WIDTH / 2, Constants.HEIGHT / 2,
-            Constants.PLAYER_W, Constants.PLAYER_H);
-        this.ctx = ((document.getElementById("gameCanvas") as HTMLCanvasElement)
-            .getContext("2d") as CanvasRenderingContext2D);
-        Key.init(); // set up keyboard input handler
+  constructor() {
+    this.player = new Player(
+      this,
+      Constants.WIDTH / 2,
+      Constants.HEIGHT / 2,
+      Constants.PLAYER_W,
+      Constants.PLAYER_H
+    );
+    this.ctx = (document.getElementById("gameCanvas") as HTMLCanvasElement).getContext(
+      "2d"
+    ) as CanvasRenderingContext2D;
+    Key.init(); // set up keyboard input handler
 
-        setInterval(this.loop, 1000 / Constants.FPS);
-    }
+    Game.spritesheet = new Image();
+    Game.spritesheet.src = "res/tileset.png";
 
-    private update = () => {
-        if (Key.isDown(Key.LEFT)) {
-            this.player.rv -= Constants.ACCEL;
-        }
-        else if (Key.isDown(Key.RIGHT)) {
-            this.player.rv += Constants.ACCEL;
-        }
-        else {
-            this.player.rv *= 0.9;
-        }
-        if (Math.abs(this.player.rv) > Constants.MAX_SPIN) {
-            this.player.rv = Constants.MAX_SPIN * Math.sign(this.player.rv);
-        }
-        this.player.r += this.player.rv;
+    this.level = new Level();
+    this.parallax = new Parallax();
 
-        this.player.x += this.player.dx;
-        this.player.y += this.player.dy;
-        this.player.dy += Constants.GRAVITY;
+    setInterval(this.loop, 1000 / Constants.FPS);
+  }
 
-        if (this.player.x > Constants.WIDTH - this.player.w) {
-            this.player.x = Constants.WIDTH - this.player.w;
-            this.player.dx *= -Constants.X_BOUNCE;
-            this.player.dy = -this.player.rv * Constants.WALL_FRICTION;
-        }
-        if (this.player.x < 0) {
-            this.player.x = 0;
-            this.player.dx *= -Constants.X_BOUNCE;
-            this.player.dy = this.player.rv * Constants.WALL_FRICTION;
-        }
-        if (this.player.y > Constants.HEIGHT - this.player.h) {
-            this.player.y = Constants.HEIGHT - this.player.h;
-            this.player.dy *= -Constants.Y_BOUNCE;
-            this.player.dx = this.player.rv * Constants.WALL_FRICTION;
-        }
-        if (this.player.y < 0) {
-            this.player.y = 0;
-            this.player.dy *= -Constants.Y_BOUNCE;
-            this.player.dx = -this.player.rv * Constants.WALL_FRICTION;
-        }
-    }
+  private update = () => {
+    this.player.update();
+    Camera.updateTarget(this.player);
+    Camera.update();
+  };
 
-    private draw = () => {
-        this.ctx.fillStyle = "white";
-        this.ctx.fillRect(0, 0, Constants.WIDTH, Constants.HEIGHT);
+  private draw = () => {
+    this.ctx.fillStyle = "#301a52";
+    this.ctx.fillRect(0, 0, Constants.WIDTH, Constants.HEIGHT);
 
-        this.ctx.fillStyle = "black";
-        this.ctx.translate(this.player.x + this.player.w / 2,
-            this.player.y + this.player.h / 2);
-        this.ctx.rotate(this.player.r);
-        this.ctx.fillRect(-this.player.w / 2, -this.player.h / 2,
-            this.player.w, this.player.h);
-        this.ctx.setTransform(1, 0, 0, 1, 0, 0);
-    }
+    this.parallax.draw(this.ctx);
+    this.level.draw(this.ctx);
+    this.player.draw(this.ctx);
+  };
 
-    private loop = () => {
-        this.update();
-        this.draw();
-    }
+  private loop = () => {
+    this.update();
+    this.draw();
+  };
 }
 
 var game = new Game();
-console.log(game);
