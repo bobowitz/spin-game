@@ -6,7 +6,7 @@ let GRAVITY = 0.2;
 let WALL_FRICTION = 20;
 let X_BOUNCE = 1;
 let Y_BOUNCE = 0.8;
-let ACCEL = 0.03;
+let ACCEL = 0.04;
 
 let ctx = document.getElementById("gameCanvas").getContext("2d");
 
