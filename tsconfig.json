@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "allowUnusedLabels": false,
+    "target": "es6",
+    "module": "amd",
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "suppressImplicitAnyIndexErrors": true,
+    "lib": [
+      "es6",
+      "dom"
+    ],
+    "outFile": "out/game.js",
+    "sourceMap": true,
+    "strictNullChecks": true,
+    "experimentalDecorators": true
+  }
+}
