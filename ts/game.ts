@@ -16,8 +16,8 @@ export class Game {
   constructor() {
     this.player = new Player(
       this,
-      Constants.WIDTH / 2,
-      Constants.HEIGHT / 2,
+      0, // position gets set by Level ctor from level.png
+      0,
       Constants.PLAYER_W,
       Constants.PLAYER_H
     );
@@ -29,7 +29,7 @@ export class Game {
     Game.spritesheet = new Image();
     Game.spritesheet.src = "res/tileset.png";
 
-    this.level = new Level();
+    this.level = new Level(this);
     this.parallax = new Parallax();
 
     setInterval(this.loop, 1000 / Constants.FPS);

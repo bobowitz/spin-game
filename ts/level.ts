@@ -1,6 +1,7 @@
 import { Constants } from "./constants";
 import { Block } from "./block";
 import { Camera } from "./camera";
+import { Game } from "./game";
 
 export class Level {
   public blocks: Array<Block>;
@@ -16,7 +17,12 @@ export class Level {
     );
   }
 
-  constructor() {
+  private movePlayer(game: Game, x: number, y: number) {
+    game.player.x = x * Constants.TILESIZE;
+    game.player.y = y * Constants.TILESIZE;
+  }
+
+  constructor(game: Game) {
     this.blocks = new Array();
 
     let levelImage = new Image();
@@ -40,6 +46,9 @@ export class Level {
 
           if (r === 0 && g === 0 && b === 0) {
             this.addBlock(x, y);
+          }
+          if (r === 255 && g === 255 && b === 0) {
+            this.movePlayer(game, x, y);
           }
         }
       }
